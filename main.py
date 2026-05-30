@@ -408,6 +408,7 @@ def run_live_analysis(query: str) -> Dict[str, Any]:
     1. Be highly objective and scientific.
     2. Do NOT mention HTML tags. Use markdown for bolding.
     3. Ensure the JSON is valid. Output ONLY the JSON block. Do not wrap in ```json ``` markdown blocks.
+    4. Note: If Google Search grounding fails or is unavailable in your configuration, you MUST analyze the claim based on the pre-scraped search results and official factcheck reviews provided above. Do not claim the facts are unverified if the provided context contains sufficient evidence.
     """
 
     # 4. Call Gemini using the new google-genai SDK (with smart multi-model fallback)
@@ -464,23 +465,41 @@ def run_live_analysis(query: str) -> Dict[str, Any]:
             tools=[types.Tool(google_search=types.GoogleSearch())]
         )
         
-        # Try models in sequence until one succeeds
+        # Try models in sequence with search grounding enabled
         response = None
         last_model_error = None
+        
+        print("PASS 1: Attempting models WITH Google Search grounding...")
         for m_name in models_to_try:
             try:
-                print(f"Attempting fact analysis with: {m_name}...")
+                print(f"Attempting grounded fact analysis with: {m_name}...")
                 response = client.models.generate_content(
                     model=m_name,
                     contents=prompt,
                     config=grounding_config
                 )
-                print(f"Success! Model {m_name} generated the verification analysis.")
+                print(f"Success! Model {m_name} (grounded) generated the verification analysis.")
                 break
             except Exception as model_e:
-                print(f"Model {m_name} failed: {model_e}")
+                print(f"Model {m_name} (grounded) failed: {model_e}")
                 last_model_error = model_e
                 
+        # Pass 2: Fall back to standard generate_content if grounding failed (e.g. rate limit, quota limit, billing issue)
+        if response is None:
+            print("PASS 2: Grounding failed/exhausted. Retrying models WITHOUT Google Search grounding...")
+            for m_name in models_to_try:
+                try:
+                    print(f"Attempting non-grounded fact analysis with: {m_name}...")
+                    response = client.models.generate_content(
+                        model=m_name,
+                        contents=prompt
+                    )
+                    print(f"Success! Model {m_name} (non-grounded) generated the verification analysis.")
+                    break
+                except Exception as model_e:
+                    print(f"Model {m_name} (non-grounded) failed: {model_e}")
+                    last_model_error = model_e
+                    
         if response is None:
             raise last_model_error
             
