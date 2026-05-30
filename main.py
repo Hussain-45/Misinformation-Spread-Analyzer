@@ -207,7 +207,8 @@ def generate_mock_analysis(query: str) -> Dict[str, Any]:
         "platform_spread": sorted_spread,
         "spread_velocity": velocity,
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "mode": "Mock Data (API Keys Not Configured)"
+        "mode": "Mock Data (API Keys Not Configured)",
+        "search_queries": []
     }
 
 # ----------------- LIVE DATA GATHERING -----------------
@@ -227,6 +228,48 @@ def search_duckduckgo(query: str, max_results: int = 10) -> List[Dict[str, str]]
             ]
     except Exception as e:
         print(f"DuckDuckGo search failed: {e}")
+        return []
+
+def search_wikipedia(query: str, max_results: int = 5) -> List[Dict[str, str]]:
+    headers = {"User-Agent": "VeritasFactChecker/1.0 (sameehussainldh@gmail.com)"}
+    try:
+        # Step 1: Query open search API for matching page titles
+        url = "https://en.wikipedia.org/w/api.php"
+        params = {
+            "action": "opensearch",
+            "search": query,
+            "limit": max_results,
+            "format": "json"
+        }
+        res = requests.get(url, params=params, headers=headers, timeout=6)
+        if res.status_code != 200:
+            return []
+            
+        data = res.json()
+        titles = data[1]
+        urls = data[3]
+        
+        results = []
+        # Step 2: Fetch short summary extracts for each found title
+        for i, title in enumerate(titles):
+            try:
+                summary_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{requests.utils.quote(title)}"
+                summary_res = requests.get(summary_url, headers=headers, timeout=4)
+                if summary_res.status_code == 200:
+                    summary_data = summary_res.json()
+                    extract = summary_data.get("extract", "")
+                    if extract:
+                        results.append({
+                            "title": title,
+                            "url": urls[i],
+                            "snippet": extract
+                        })
+            except Exception as e_sum:
+                print(f"Failed to fetch Wikipedia summary for {title}: {e_sum}")
+                
+        return results
+    except Exception as e:
+        print(f"Wikipedia search lookup failed: {e}")
         return []
 
 def query_google_factcheck(query: str) -> List[Dict[str, Any]]:
@@ -343,8 +386,11 @@ def run_live_analysis(query: str) -> Dict[str, Any]:
     # 1. Query Google Fact Check API first
     factcheck_results = query_google_factcheck(query)
     
-    # 2. Query DuckDuckGo for context grounding
+    # 2. Query DuckDuckGo for context grounding (with Wikipedia fallback if blocked/exhausted)
     search_results = search_duckduckgo(query, max_results=12)
+    if not search_results:
+        print("DuckDuckGo returned no results or timed out. Falling back to Wikipedia Search API...")
+        search_results = search_wikipedia(query, max_results=5)
     
     # 3. Estimate social spread based on search results
     platform_spread = estimate_live_spread(query, search_results)
@@ -541,9 +587,11 @@ def run_live_analysis(query: str) -> Dict[str, Any]:
 
     # Extract dynamic grounding metadata from the successful Gemini model response
     grounding_sources = []
+    web_search_queries = []
     try:
         if response and response.candidates and response.candidates[0].grounding_metadata:
             meta = response.candidates[0].grounding_metadata
+            web_search_queries = getattr(meta, "web_search_queries", [])
             chunks = getattr(meta, "grounding_chunks", [])
             for c in chunks:
                 web = getattr(c, "web", None)
@@ -552,12 +600,37 @@ def run_live_analysis(query: str) -> Dict[str, Any]:
                     uri = getattr(web, "uri", "")
                     if uri and not any(src["url"] == uri for src in grounding_sources):
                         domain = uri.split("/")[2] if "/" in uri else "google.com"
-                        grounding_sources.append({
-                            "title": title,
-                            "url": uri,
-                            "publisher": domain.replace("www.", ""),
-                            "rating": "Grounded News Link"
-                        })
+                        
+                        publisher_name = domain.replace("www.", "")
+                        display_title = title
+                        
+                        # Clean up vertexaisearch redirect URLs' publisher names
+                        if publisher_name == "vertexaisearch.cloud.google.com":
+                            publisher_name = title
+                            display_title = f"Grounded Search Reference ({title})"
+                            
+                        # Try to find a match in pre-scraped search_results (DuckDuckGo or Wikipedia)
+                        # to fetch a clean, direct URL and article title
+                        matched_src = None
+                        for s in search_results:
+                            if title.lower() in s["url"].lower() or (len(title) > 3 and title.lower() in s["title"].lower()):
+                                matched_src = s
+                                break
+                                
+                        if matched_src:
+                            grounding_sources.append({
+                                "title": matched_src["title"],
+                                "url": matched_src["url"],
+                                "publisher": title,
+                                "rating": "Grounded News Link"
+                            })
+                        else:
+                            grounding_sources.append({
+                                "title": display_title,
+                                "url": uri,
+                                "publisher": publisher_name,
+                                "rating": "Grounded News Link"
+                            })
     except Exception as meta_err:
         print(f"Failed to parse Google Search grounding metadata: {meta_err}")
 
@@ -599,7 +672,8 @@ def run_live_analysis(query: str) -> Dict[str, Any]:
         "platform_spread": platform_spread,
         "spread_velocity": velocity,
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "mode": "Live AI Grounded API"
+        "mode": "Live AI Grounded API",
+        "search_queries": web_search_queries
     }
 
 # ----------------- ENDPOINTS -----------------

@@ -277,6 +277,19 @@ function renderResults(result) {
     // Metadata footer
     document.getElementById("result-timestamp").innerText = `Analysis Timestamp: ${result.timestamp}`;
     
+    // Render queries if available
+    const queriesEl = document.getElementById("result-queries");
+    if (queriesEl) {
+        if (result.search_queries && result.search_queries.length > 0) {
+            const queriesStr = result.search_queries.map(q => `"${q}"`).join(", ");
+            queriesEl.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Google Search: ${queriesStr}`;
+            queriesEl.title = `Executed search queries: ${queriesStr}`;
+        } else {
+            queriesEl.innerHTML = `<i class="fa-solid fa-circle-info"></i> Processed in real-time`;
+            queriesEl.removeAttribute("title");
+        }
+    }
+    
     // Render Grounding citations
     const sourcesGrid = document.getElementById("result-sources");
     sourcesGrid.innerHTML = "";
