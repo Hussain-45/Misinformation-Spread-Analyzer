@@ -415,7 +415,22 @@ def run_live_analysis(query: str) -> Dict[str, Any]:
         client = genai.Client(api_key=gemini_key)
         
         # Preferred list of models in order of preference
-        preferred_order = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash", "gemini-1.5-pro", "gemini-2.5-pro", "gemini-1.5-flash-8b"]
+        preferred_order = [
+            "gemini-2.0-flash", 
+            "gemini-2.5-flash", 
+            "gemini-3.5-flash", 
+            "gemini-3.1-flash", 
+            "gemini-3-flash", 
+            "gemini-flash-latest", 
+            "gemini-1.5-flash", 
+            "gemini-2.5-pro", 
+            "gemini-2.0-pro", 
+            "gemini-3.1-pro", 
+            "gemini-3-pro", 
+            "gemini-pro-latest", 
+            "gemini-1.5-pro", 
+            "gemini-1.5-flash-8b"
+        ]
         models_to_try = []
         
         # Query Google to see what models this API key actually supports
