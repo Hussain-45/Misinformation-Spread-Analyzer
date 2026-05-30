@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veritas // Misinformation Spread Analyser</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="glass-bg"></div>
+    <div class="glow-blob blob-1"></div>
+    <div class="glow-blob blob-2"></div>
+    <div class="glow-blob blob-3"></div>
+    <div class="sparkles-container" id="sparkles"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="brand">
+                <i class="fa-solid fa-shield-halved logo-icon"></i>
+                <div class="brand-text">
+                    <h1>VERITAS</h1>
+                    <span>Misinformation Spread Analyser</span>
+                </div>
+            </div>
+            <div class="status-badge" id="api-status-badge">
+                <span class="pulse-dot"></span>
+                <span id="api-mode-text">Checking API Status...</span>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <main class="dashboard-grid">
+            <!-- Sidebar / Control Panel -->
+            <section class="control-panel glass-card">
+                <h2><i class="fa-solid fa-magnifying-glass-chart"></i> Analyse Claim</h2>
+                <p class="panel-desc">Enter any news headline, social media post, or claim. Veritas will scan news feeds, query fact-check networks, and trace viral spread in real-time.</p>
+                
+                <form id="analyze-form" class="search-form">
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-quote-left search-icon"></i>
+                        <textarea 
+                            id="query-input" 
+                            placeholder="e.g., NASA faked the moon landing to win the space race..." 
+                            required 
+                            rows="3"
+                        ></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary" id="submit-btn">
+                        <span>Analyse Real-time</span>
+                        <i class="fa-solid fa-circle-nodes"></i>
+                    </button>
+                </form>
+
+                <div class="history-section">
+                    <h3><i class="fa-solid fa-clock-rotate-left"></i> Recent Analyses</h3>
+                    <ul class="history-list" id="history-list">
+                        <li class="empty-history">No recent searches</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Results Panel -->
+            <section class="results-panel">
+                <!-- Idle State -->
+                <div class="state-container active" id="state-idle">
+                    <div class="idle-content">
+                        <div class="glowing-orb">
+                            <i class="fa-solid fa-radar-node"></i>
+                        </div>
+                        <h2>System Ready</h2>
+                        <p>Input a claim on the left to perform real-time verification and spread analysis.</p>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div class="state-container" id="state-loading">
+                    <div class="loader-content">
+                        <div class="spinner-wrapper">
+                            <div class="spinner"></div>
+                            <div class="spinner-inner"></div>
+                            <i class="fa-solid fa-microchip spinner-core"></i>
+                        </div>
+                        <h2 class="typing-text">Crawling Social Networks...</h2>
+                        <p id="loading-subtext">Querying fact check databases...</p>
+                        
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error State -->
+                <div class="state-container" id="state-error">
+                    <div class="error-content">
+                        <i class="fa-solid fa-triangle-exclamation error-icon"></i>
+                        <h2>Analysis Failed</h2>
+                        <p id="error-message">Something went wrong while connecting to the fact-checking services.</p>
+                        <button class="btn-secondary" onclick="resetToIdle()">Try Again</button>
+                    </div>
+                </div>
+
+                <!-- Analysis Success State -->
+                <div class="state-container" id="state-success">
+                    <div class="results-grid">
+                        
+                        <!-- Top Summary (Verdict & Trust Score) -->
+                        <div class="verdict-card glass-card span-all-cols">
+                            <div class="verdict-header">
+                                <div class="verdict-info">
+                                    <span class="label">VERDICT STATUS</span>
+                                    <div class="verdict-badge-wrapper">
+                                        <h2 id="result-verdict" class="verdict-text">FALSE</h2>
+                                    </div>
+                                </div>
+                                <div class="score-container">
+                                    <div class="score-ring">
+                                        <svg width="100" height="100" viewBox="0 0 100 100">
+                                            <circle class="bg" cx="50" cy="50" r="42" />
+                                            <circle class="meter" id="score-meter" cx="50" cy="50" r="42" />
+                                        </svg>
+                                        <div class="score-value">
+                                            <span id="result-score">0</span>
+                                            <span class="score-label">Trust</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="query-echo">
+                                <i class="fa-solid fa-quote-left"></i>
+                                <span id="result-query">Claim text echoed here</span>
+                            </div>
+                        </div>
+
+                        <!-- Platform Spread & Velocity -->
+                        <div class="spread-card glass-card">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-chart-pie"></i> Platform Spread</h3>
+                                <div class="velocity-badge" id="result-velocity">
+                                    <i class="fa-solid fa-bolt"></i> <span id="result-velocity-text">HIGH</span>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="spread-chart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- AI Context & Warning Signs -->
+                        <div class="ai-report-card glass-card">
+                            <h3><i class="fa-solid fa-wand-magic-sparkles"></i> AI Verification Report</h3>
+                            <div class="ai-explanation" id="result-explanation">
+                                Explanation text...
+                            </div>
+                            <div class="meta-info">
+                                <span><i class="fa-solid fa-circle-info"></i> Processed in real-time</span>
+                                <span id="result-timestamp">Timestamp</span>
+                            </div>
+                        </div>
+
+                        <!-- Sources & References -->
+                        <div class="sources-card glass-card span-all-cols">
+                            <h3><i class="fa-solid fa-book-bookmark"></i> Verification Sources & Grounding Links</h3>
+                            <div class="sources-list" id="result-sources">
+                                <!-- Source items injected here -->
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html>
