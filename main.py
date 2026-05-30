@@ -414,22 +414,33 @@ def run_live_analysis(query: str) -> Dict[str, Any]:
     try:
         client = genai.Client(api_key=gemini_key)
         
-        # Query Google to see what models this API key actually supports
+        # Preferred list of models in order of preference
+        preferred_order = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash", "gemini-1.5-pro", "gemini-2.5-pro", "gemini-1.5-flash-8b"]
         models_to_try = []
+        
+        # Query Google to see what models this API key actually supports
         try:
             listed = list(client.models.list())
+            supported_names = []
             for m in listed:
                 name = m.name
                 if name.startswith("models/"):
                     name = name[7:]
-                models_to_try.append(name)
-            print(f"API key supports models: {models_to_try}")
+                supported_names.append(name)
+            
+            # Populate models_to_try in preferred order if they are supported by the key
+            for model_pref in preferred_order:
+                matched = [sn for sn in supported_names if model_pref in sn]
+                for m_match in matched:
+                    if m_match not in models_to_try and not any(x in m_match for x in ["tts", "embedding", "image"]):
+                        models_to_try.append(m_match)
+                        
+            print(f"API key supported models (filtered & prioritized): {models_to_try}")
         except Exception as list_err:
             print(f"Could not list models: {list_err}. Using hardcoded fallbacks.")
             
-        # Hardcoded fallback list in order of preference
-        fallbacks = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-pro"]
-        for fb in fallbacks:
+        # If listing failed or returned nothing, populate with preferred order
+        for fb in preferred_order:
             if fb not in models_to_try:
                 models_to_try.append(fb)
                 

@@ -330,10 +330,23 @@ body {
     transform: translateX(3px);
 }
 
-.history-item.verdict-TRUE { border-left-color: var(--true-color); }
-.history-item.verdict-FALSE { border-left-color: var(--false-color); }
-.history-item.verdict-MISLEADING { border-left-color: var(--misleading-color); }
-.history-item.verdict-UNVERIFIED { border-left-color: var(--unverified-color); }
+/* Color indicators for history items - Supporting both class on parent and :has child selectors */
+.history-item.verdict-TRUE, .history-item.verdict-True, .history-item.verdict-true,
+.history-item:has(.verdict-TRUE), .history-item:has(.verdict-True), .history-item:has(.verdict-true) { 
+    border-left-color: var(--true-color) !important; 
+}
+.history-item.verdict-FALSE, .history-item.verdict-False, .history-item.verdict-false,
+.history-item:has(.verdict-FALSE), .history-item:has(.verdict-False), .history-item:has(.verdict-false) { 
+    border-left-color: var(--false-color) !important; 
+}
+.history-item.verdict-MISLEADING, .history-item.verdict-Misleading, .history-item.verdict-misleading,
+.history-item:has(.verdict-MISLEADING), .history-item:has(.verdict-Misleading), .history-item:has(.verdict-misleading) { 
+    border-left-color: var(--misleading-color) !important; 
+}
+.history-item.verdict-UNVERIFIED, .history-item.verdict-Unverified, .history-item.verdict-unverified,
+.history-item:has(.verdict-UNVERIFIED), .history-item:has(.verdict-Unverified), .history-item:has(.verdict-unverified) { 
+    border-left-color: var(--unverified-color) !important; 
+}
 
 .history-item .claim-text {
     white-space: nowrap;
@@ -343,7 +356,8 @@ body {
     font-weight: 500;
 }
 
-.history-item .verdict-tag {
+/* History tags and pills styling */
+.history-item .verdict-tag, .history-item .verdict-pill {
     font-family: 'Orbitron', sans-serif;
     font-size: 0.72rem;
     font-weight: 700;
@@ -352,10 +366,30 @@ body {
     background: rgba(255, 255, 255, 0.04);
 }
 
-.history-item.verdict-TRUE .verdict-tag { color: var(--true-color); }
-.history-item.verdict-FALSE .verdict-tag { color: var(--false-color); }
-.history-item.verdict-MISLEADING .verdict-tag { color: var(--misleading-color); }
-.history-item.verdict-UNVERIFIED .verdict-tag { color: var(--unverified-color); }
+/* Color overrides for text */
+.history-item.verdict-TRUE .verdict-tag, .history-item.verdict-True .verdict-tag, .history-item.verdict-true .verdict-tag,
+.verdict-tag.verdict-TRUE, .verdict-tag.verdict-True, .verdict-tag.verdict-true,
+.verdict-pill.verdict-TRUE, .verdict-pill.verdict-True, .verdict-pill.verdict-true { 
+    color: var(--true-color) !important; 
+}
+
+.history-item.verdict-FALSE .verdict-tag, .history-item.verdict-False .verdict-tag, .history-item.verdict-false .verdict-tag,
+.verdict-tag.verdict-FALSE, .verdict-tag.verdict-False, .verdict-tag.verdict-false,
+.verdict-pill.verdict-FALSE, .verdict-pill.verdict-False, .verdict-pill.verdict-false { 
+    color: var(--false-color) !important; 
+}
+
+.history-item.verdict-MISLEADING .verdict-tag, .history-item.verdict-Misleading .verdict-tag, .history-item.verdict-misleading .verdict-tag,
+.verdict-tag.verdict-MISLEADING, .verdict-tag.verdict-Misleading, .verdict-tag.verdict-misleading,
+.verdict-pill.verdict-MISLEADING, .verdict-pill.verdict-Misleading, .verdict-pill.verdict-misleading { 
+    color: var(--misleading-color) !important; 
+}
+
+.history-item.verdict-UNVERIFIED .verdict-tag, .history-item.verdict-Unverified .verdict-tag, .history-item.verdict-unverified .verdict-tag,
+.verdict-tag.verdict-UNVERIFIED, .verdict-tag.verdict-Unverified, .verdict-tag.verdict-unverified,
+.verdict-pill.verdict-UNVERIFIED, .verdict-pill.verdict-Unverified, .verdict-pill.verdict-unverified { 
+    color: var(--unverified-color) !important; 
+}
 
 /* Right Results Panel States */
 .results-panel {

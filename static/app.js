@@ -355,10 +355,12 @@ function renderHistory() {
     
     analysisHistory.forEach(item => {
         const li = document.createElement("li");
-        li.className = `history-item verdict-${item.verdict}`;
+        const verdictUpper = (item.verdict || "UNVERIFIED").toUpperCase();
+        
+        li.className = `history-item verdict-${verdictUpper}`;
         li.innerHTML = `
             <span class="claim-text" title="${item.query}">${item.query}</span>
-            <span class="verdict-tag">${item.verdict}</span>
+            <span class="verdict-tag verdict-pill verdict-${verdictUpper}">${verdictUpper}</span>
         `;
         
         li.addEventListener("click", () => {
