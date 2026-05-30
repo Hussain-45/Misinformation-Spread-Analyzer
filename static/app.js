@@ -1,53 +1,55 @@
-// App State Variables
+// Veritas Client-side Dashboard Controller
+
 let spreadChart = null;
 let analysisHistory = JSON.parse(localStorage.getItem('veritas_history')) || [];
 
-// Constants
-const LOADING_MESSAGES = [
-    "Scraping social media index feeds...",
-    "Querying Google FactCheck API...",
-    "Running real-time domain frequency searches...",
-    "Aggregating platform metrics...",
-    "Running Gemini LLM reasoning...",
-    "Finalizing fact-checking reports..."
+const LOADING_STEPS = [
+    "Scraping social media indices...",
+    "Querying Google FactCheck database...",
+    "Scraping live search pages...",
+    "Analyzing domain distributions...",
+    "Invoking Gemini reasoning models...",
+    "Compiling truth report..."
 ];
 
-// Document Ready
+// Document initialization
 document.addEventListener("DOMContentLoaded", () => {
     generateBackgroundSparkles();
     checkApiStatus();
     renderHistory();
     initChart();
     
-    // Form submission handler
     const form = document.getElementById("analyze-form");
     form.addEventListener("submit", (e) => {
         e.preventDefault();
-        const input = document.getElementById("query-input").value.trim();
-        if (input) {
-            triggerAnalysis(input);
+        const query = document.getElementById("query-input").value.trim();
+        if (query) {
+            triggerAnalysis(query);
         }
     });
 });
 
-// Generate dynamic background particles
+// Sparkles Background Generator
 function generateBackgroundSparkles() {
     const container = document.getElementById("sparkles");
-    const count = 35;
+    if (!container) return;
+    
+    const count = 40;
     for (let i = 0; i < count; i++) {
         const sparkle = document.createElement("div");
         sparkle.className = "sparkle";
         sparkle.style.top = `${Math.random() * 100}%`;
         sparkle.style.left = `${Math.random() * 100}%`;
         sparkle.style.animationDelay = `${Math.random() * 4}s`;
-        sparkle.style.transform = `scale(${Math.random() * 1.5 + 0.5})`;
+        sparkle.style.transform = `scale(${Math.random() * 1.6 + 0.4})`;
         container.appendChild(sparkle);
     }
 }
 
-// Initialise Chart.js
+// Chart.js Setup
 function initChart() {
     const ctx = document.getElementById('spread-chart').getContext('2d');
+    if (!ctx) return;
     
     Chart.defaults.color = '#a1a1aa';
     Chart.defaults.font.family = "'Outfit', sans-serif";
@@ -55,7 +57,7 @@ function initChart() {
     spreadChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['Twitter/X', 'Reddit', 'Facebook', 'YouTube', 'TikTok', 'Instagram'],
+            labels: ['X / Twitter', 'Reddit', 'Facebook', 'YouTube', 'TikTok', 'Instagram'],
             datasets: [{
                 label: 'Viral Index',
                 data: [0, 0, 0, 0, 0, 0],
@@ -64,7 +66,6 @@ function initChart() {
                     const {ctx, chartArea} = chart;
                     if (!chartArea) return null;
                     
-                    // Dynamic vertical gradient for bars
                     const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
                     gradient.addColorStop(0, '#8b5cf6'); // Violet
                     gradient.addColorStop(1, '#06b6d4'); // Teal
@@ -72,7 +73,7 @@ function initChart() {
                 },
                 borderRadius: 8,
                 borderWidth: 0,
-                barThickness: 24,
+                barThickness: 20,
             }]
         },
         options: {
@@ -81,10 +82,10 @@ function initChart() {
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    backgroundColor: '#18181b',
+                    backgroundColor: '#0f0f15',
                     titleColor: '#ffffff',
                     bodyColor: '#e4e4e7',
-                    borderColor: '#27272a',
+                    borderColor: 'rgba(255,255,255,0.08)',
                     borderWidth: 1,
                     padding: 10,
                     displayColors: false,
@@ -97,7 +98,7 @@ function initChart() {
             },
             scales: {
                 y: {
-                    grid: { color: 'rgba(255, 255, 255, 0.05)', drawTicks: false },
+                    grid: { color: 'rgba(255, 255, 255, 0.04)', drawTicks: false },
                     border: { dash: [4, 4] },
                     ticks: { callback: value => `${value}%` },
                     min: 0,
@@ -111,24 +112,26 @@ function initChart() {
     });
 }
 
-// Check Backend API Connection Status
+// Check backend mode status badge
 async function checkApiStatus() {
-    const statusText = document.getElementById("api-mode-text");
-    const statusBadge = document.getElementById("api-status-badge");
-    const pulseDot = statusBadge.querySelector(".pulse-dot");
+    const textEl = document.getElementById("api-mode-text");
+    const badgeEl = document.getElementById("api-status-badge");
+    if (!textEl || !badgeEl) return;
+    
+    const pulseDot = badgeEl.querySelector(".pulse-dot");
     
     try {
-        const response = await fetch("/api/status");
-        if (response.ok) {
-            const data = await response.json();
-            if (data.mode === "Live") {
-                statusText.innerText = "Live AI Mode Active";
-                statusText.style.color = "#10b981";
+        const res = await fetch("/api/status");
+        if (res.ok) {
+            const status = await res.json();
+            if (status.mode === "Live") {
+                textEl.innerText = "Live AI Mode Active";
+                textEl.style.color = "#10b981";
                 pulseDot.style.backgroundColor = "#10b981";
                 pulseDot.style.boxShadow = "0 0 10px #10b981";
             } else {
-                statusText.innerText = "Demo Mode (Mock Data)";
-                statusText.style.color = "#f59e0b";
+                textEl.innerText = "Demo Mode (Mock Data)";
+                textEl.style.color = "#f59e0b";
                 pulseDot.style.backgroundColor = "#f59e0b";
                 pulseDot.style.boxShadow = "0 0 10px #f59e0b";
             }
@@ -136,19 +139,22 @@ async function checkApiStatus() {
             throw new Error();
         }
     } catch (e) {
-        statusText.innerText = "Offline";
-        statusText.style.color = "#ef4444";
+        textEl.innerText = "Offline";
+        textEl.style.color = "#ef4444";
         pulseDot.style.backgroundColor = "#ef4444";
         pulseDot.style.boxShadow = "0 0 10px #ef4444";
     }
 }
 
-// Switch UI active view states
+// Controller State Switching
 function switchState(stateName) {
     document.querySelectorAll(".state-container").forEach(el => {
         el.classList.remove("active");
     });
-    document.getElementById(`state-${stateName}`).classList.add("active");
+    const stateEl = document.getElementById(`state-${stateName}`);
+    if (stateEl) {
+        stateEl.classList.add("active");
+    }
 }
 
 function resetToIdle() {
@@ -156,125 +162,124 @@ function resetToIdle() {
     document.getElementById("query-input").value = "";
 }
 
-// Perform Claim Analysis fetch
+// Perform Analysis Fetch
 async function triggerAnalysis(query) {
     switchState("loading");
     
-    // Animate loader texts and progress bar sequentially
-    const textEl = document.querySelector(".typing-text");
-    const subtextEl = document.getElementById("loading-subtext");
+    const typingText = document.querySelector(".typing-text");
+    const subtext = document.getElementById("loading-subtext");
     const progressFill = document.getElementById("progress-fill");
     const submitBtn = document.getElementById("submit-btn");
     
     submitBtn.disabled = true;
     progressFill.style.width = "10%";
     
-    let step = 0;
-    const msgInterval = setInterval(() => {
-        step++;
-        if (step < LOADING_MESSAGES.length) {
-            textEl.innerText = LOADING_MESSAGES[step];
-            subtextEl.innerText = `Performing network queries (step ${step + 1} of 6)...`;
-            progressFill.style.width = `${10 + step * 15}%`;
+    let loadStep = 0;
+    const interval = setInterval(() => {
+        loadStep++;
+        if (loadStep < LOADING_STEPS.length) {
+            typingText.innerText = LOADING_STEPS[loadStep];
+            subtext.innerText = `Resolving verification pipelines (step ${loadStep + 1} of 6)...`;
+            progressFill.style.width = `${10 + loadStep * 15}%`;
         }
-    }, 1200);
+    }, 1100);
     
     try {
-        const response = await fetch(`/api/analyze?q=${encodeURIComponent(query)}`);
-        clearInterval(msgInterval);
+        const res = await fetch(`/api/analyze?q=${encodeURIComponent(query)}`);
+        clearInterval(interval);
         
-        if (!response.ok) {
-            throw new Error(`Server returned error: ${response.statusText}`);
+        if (!res.ok) {
+            throw new Error(`Server API status error: ${res.statusText}`);
         }
         
-        const result = await response.json();
+        const result = await res.json();
         progressFill.style.width = "100%";
         
-        // Wait slightly for visual flow, then show results
         setTimeout(() => {
             renderResults(result);
-            saveToHistory(result);
+            saveHistory(result);
             submitBtn.disabled = false;
         }, 500);
         
-    } catch (err) {
-        clearInterval(msgInterval);
-        console.error(err);
-        document.getElementById("error-message").innerText = `Failed to process claim. Details: ${err.message || "Connection refused"}`;
+    } catch (e) {
+        clearInterval(interval);
+        console.error(e);
+        document.getElementById("error-message").innerText = `Failed to complete analysis. Details: ${e.message || "Connection refused"}`;
         switchState("error");
         submitBtn.disabled = false;
     }
 }
 
-// Render Results to HTML Elements
+// Render API payload values to DOM
 function renderResults(result) {
     switchState("success");
     
-    // 1. Setup Query display
+    // Echo Query
     document.getElementById("result-query").innerText = result.query;
     
-    // 2. Setup Verdict Header styling
+    // Verdict Styling
     const verdictEl = document.getElementById("result-verdict");
     verdictEl.innerText = result.verdict;
     verdictEl.className = `verdict-text verdict-${result.verdict}`;
     
-    // 3. Setup Trust Score Meter and text
-    const scoreValEl = document.getElementById("result-score");
-    scoreValEl.innerText = result.trust_score;
+    const verdictCard = document.querySelector(".verdict-card");
+    verdictCard.className = `verdict-card glass-card span-all-cols verdict-${result.verdict}`;
     
-    // Animate trust circle
-    const meterCircle = document.getElementById("score-meter");
-    const radius = meterCircle.r.baseVal.value;
+    // Trust Score Gauge Circle
+    const scoreVal = document.getElementById("result-score");
+    scoreVal.innerText = result.trust_score;
+    
+    const meter = document.getElementById("score-meter");
+    const radius = meter.r.baseVal.value;
     const circumference = 2 * Math.PI * radius;
-    const offset = circumference - (result.trust_score / 100) * circumference;
+    const strokeOffset = circumference - (result.trust_score / 100) * circumference;
     
-    // Apply stroke color depending on rating category
-    let colorVar = "var(--unverified-color)";
-    if (result.verdict === "TRUE") colorVar = "var(--true-color)";
-    if (result.verdict === "FALSE") colorVar = "var(--false-color)";
-    if (result.verdict === "MISLEADING") colorVar = "var(--misleading-color)";
+    // Colors variables mapping
+    let colorHex = "#3b82f6"; // Blue (Unverified)
+    if (result.verdict === "TRUE") colorHex = "#10b981"; // Green
+    if (result.verdict === "FALSE") colorHex = "#ef4444"; // Red
+    if (result.verdict === "MISLEADING") colorHex = "#f59e0b"; // Amber
     
-    meterCircle.style.stroke = colorVar;
-    meterCircle.style.strokeDashoffset = offset;
+    meter.style.stroke = colorHex;
+    meter.style.strokeDashoffset = strokeOffset;
     
-    // 4. Spread Velocity Badge
-    const velocityEl = document.getElementById("result-velocity");
+    // Platform Spread Velocity Badge
+    const velocityBadge = document.getElementById("result-velocity");
     const velocityText = document.getElementById("result-velocity-text");
-    velocityText.innerText = `${result.spread_velocity} SPREAD VELOCITY`;
+    velocityText.innerText = `${result.spread_velocity.toUpperCase()} VELOCITY`;
     
-    // Update velocity color code classes
-    velocityEl.className = "velocity-badge";
-    if (result.spread_velocity === "Critical") {
-        velocityEl.style.color = "var(--false-color)";
-        velocityEl.style.borderColor = "var(--false-glow)";
-        velocityEl.style.background = "rgba(239, 68, 68, 0.05)";
-    } else if (result.spread_velocity === "High") {
-        velocityEl.style.color = "var(--misleading-color)";
-        velocityEl.style.borderColor = "var(--misleading-glow)";
-        velocityEl.style.background = "rgba(245, 158, 11, 0.05)";
+    velocityBadge.className = "velocity-badge";
+    if (result.spread_velocity.toLowerCase() === "critical") {
+        velocityBadge.style.color = "var(--false-color)";
+        velocityBadge.style.borderColor = "var(--false-glow)";
+        velocityBadge.style.background = "rgba(239, 68, 68, 0.05)";
+    } else if (result.spread_velocity.toLowerCase() === "high") {
+        velocityBadge.style.color = "var(--misleading-color)";
+        velocityBadge.style.borderColor = "var(--misleading-glow)";
+        velocityBadge.style.background = "rgba(245, 158, 11, 0.05)";
     } else {
-        velocityEl.style.color = "var(--true-color)";
-        velocityEl.style.borderColor = "var(--true-glow)";
-        velocityEl.style.background = "rgba(16, 185, 129, 0.05)";
+        velocityBadge.style.color = "var(--true-color)";
+        velocityBadge.style.borderColor = "var(--true-glow)";
+        velocityBadge.style.background = "rgba(16, 185, 129, 0.05)";
     }
-
-    // 5. Update Chart.js values
-    const chartLabels = Object.keys(result.platform_spread);
-    const chartData = Object.values(result.platform_spread);
     
-    spreadChart.data.labels = chartLabels;
-    spreadChart.data.datasets[0].data = chartData;
+    // Update Chart values
+    const spreadLabels = Object.keys(result.platform_spread);
+    const spreadVals = Object.values(result.platform_spread);
+    
+    spreadChart.data.labels = spreadLabels;
+    spreadChart.data.datasets[0].data = spreadVals;
     spreadChart.update();
     
-    // 6. Renders AI explanation
-    document.getElementById("result-explanation").innerHTML = formatExplanation(result.explanation);
+    // AI Explanation markdown parsing
+    document.getElementById("result-explanation").innerHTML = formatReportText(result.explanation);
     
-    // 7. Update bottom meta tag info
-    document.getElementById("result-timestamp").innerText = `Checked at: ${result.timestamp}`;
+    // Metadata footer
+    document.getElementById("result-timestamp").innerText = `Analysis Timestamp: ${result.timestamp}`;
     
-    // 8. Renders Sources Cards
-    const sourcesContainer = document.getElementById("result-sources");
-    sourcesContainer.innerHTML = "";
+    // Render Grounding citations
+    const sourcesGrid = document.getElementById("result-sources");
+    sourcesGrid.innerHTML = "";
     
     if (result.sources && result.sources.length > 0) {
         result.sources.forEach(src => {
@@ -283,50 +288,44 @@ function renderResults(result) {
             card.target = "_blank";
             card.className = "source-item";
             
-            // Format rating text color
-            let ratingClass = "";
-            const ratingLower = src.rating.toLowerCase();
-            if (ratingLower.includes("false") || ratingLower.includes("fake") || ratingLower.includes("debunked")) {
-                ratingClass = "color: var(--false-color);";
-            } else if (ratingLower.includes("true") || ratingLower.includes("verified") || ratingLower.includes("fact")) {
-                ratingClass = "color: var(--true-color);";
-            } else if (ratingLower.includes("misleading") || ratingLower.includes("context")) {
-                ratingClass = "color: var(--misleading-color);";
+            // Format rating text colors
+            let styleAttr = "color: var(--text-secondary);";
+            const ratingLow = src.rating.toLowerCase();
+            if (ratingLow.includes("false") || ratingLow.includes("fake") || ratingLow.includes("debunked")) {
+                styleAttr = "color: var(--false-color);";
+            } else if (ratingLow.includes("true") || ratingLow.includes("verified") || ratingLow.includes("fact")) {
+                styleAttr = "color: var(--true-color);";
+            } else if (ratingLow.includes("misleading") || ratingLow.includes("context")) {
+                styleAttr = "color: var(--misleading-color);";
             }
             
             card.innerHTML = `
                 <div class="source-header">
                     <span class="source-publisher"><i class="fa-solid fa-arrow-up-right-from-square"></i> ${src.publisher}</span>
-                    <span class="source-rating" style="${ratingClass}">${src.rating}</span>
+                    <span class="source-rating" style="${styleAttr}">${src.rating}</span>
                 </div>
                 <div class="source-title" title="${src.title}">${src.title}</div>
             `;
-            sourcesContainer.appendChild(card);
+            sourcesGrid.appendChild(card);
         });
     } else {
-        sourcesContainer.innerHTML = `<div class="empty-history span-all-cols" style="padding: 1.5rem 0;">No citation links found. Fact check matches have not been indexed yet.</div>`;
+        sourcesGrid.innerHTML = `<div class="empty-history span-all-cols" style="padding: 1.5rem 0;">No fact check citations found. Real-time search query results did not return standard articles.</div>`;
     }
 }
 
-// Convert markdown-style paragraph into HTML tags (like bold and paragraphs)
-function formatExplanation(text) {
+// Convert mock paragraphs and bold markdown tags
+function formatReportText(text) {
     if (!text) return "";
     
-    // Replace double newlines with paragraph tags
-    let formatted = text.split("\n\n").map(para => `<p>${para}</p>`).join("");
-    
-    // Replace **text** markdown with bold tags
-    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
-    return formatted;
+    let parsed = text.split("\n\n").map(para => `<p>${para}</p>`).join("");
+    parsed = parsed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    return parsed;
 }
 
-// History caching and LocalStorage persistence
-function saveToHistory(result) {
-    // Remove if already exists to float it to top
+// Save history caches
+function saveHistory(result) {
     analysisHistory = analysisHistory.filter(item => item.query.toLowerCase() !== result.query.toLowerCase());
     
-    // Prepend new item
     analysisHistory.unshift({
         query: result.query,
         verdict: result.verdict,
@@ -334,8 +333,8 @@ function saveToHistory(result) {
         data: result
     });
     
-    // Limit history length to 10 entries
-    if (analysisHistory.length > 10) {
+    // Restrict list to 8 items
+    if (analysisHistory.length > 8) {
         analysisHistory.pop();
     }
     
@@ -345,6 +344,8 @@ function saveToHistory(result) {
 
 function renderHistory() {
     const list = document.getElementById("history-list");
+    if (!list) return;
+    
     list.innerHTML = "";
     
     if (analysisHistory.length === 0) {
@@ -352,15 +353,14 @@ function renderHistory() {
         return;
     }
     
-    analysisHistory.forEach((item, index) => {
+    analysisHistory.forEach(item => {
         const li = document.createElement("li");
-        li.className = "history-item";
+        li.className = `history-item verdict-${item.verdict}`;
         li.innerHTML = `
             <span class="claim-text" title="${item.query}">${item.query}</span>
-            <span class="verdict-pill verdict-${item.verdict}" style="background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius:12px;">${item.verdict}</span>
+            <span class="verdict-tag">${item.verdict}</span>
         `;
         
-        // Re-inject stored data without calling API again (instant loading)
         li.addEventListener("click", () => {
             document.getElementById("query-input").value = item.query;
             renderResults(item.data);
